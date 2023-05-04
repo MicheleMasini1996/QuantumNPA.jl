@@ -20,14 +20,14 @@ function sparse_sym(N, i, j, val)
     end
 end
 
-function npa_moments_block(operators)
+function npa_moments_block(operators,cPoly)
     N = length(operators)
     iops = collect(enumerate(operators))
     block = Dict{Monomial,SparseMatrixCSC}()
 
     for (i, x) in iops
         for (j, y) in iops[i:end]
-            p = Polynomial(conj_min(conj(x)*y))
+            p = Polynomial(conj_min(conj(x)*cPoly*y))
 
             for (c, m) in p
                 if !haskey(block, m)
@@ -56,8 +56,14 @@ value is a dictionary with:
 
   * as values: block-diagonal sparse matrices with coefficients obtained
     from multiplying the input operators together.
+
+When the second argument is not specified, the function will build a 
+principal moment matrix. When one includes a polynomial in the second 
+argument, the ouput will be the localizing moment matrix of the 
+polynomial specified.
+
 """
-function npa_moments(operators)
+function npa_moments(operators, cPoly=Id)
     if isempty(operators)
         return moments
     end
@@ -68,7 +74,7 @@ function npa_moments(operators)
 
     nblocks = length(operators)
     bsizes = length.(operators)
-    blocks = npa_moments_block.(operators)
+    blocks = [npa_moments_block(i,cPoly) for i in operators]
 
     ms = monomials(keys(block) for block in blocks)
 
@@ -324,3 +330,70 @@ end
 
 npa_max(expr, level; kw...) = npa_opt(expr, level; goal=:maximise, kw...)
 npa_min(expr, level; kw...) = npa_opt(expr, level; goal=:minimise, kw...)
+
+
+"""
+Generate the SDP relaxation of a generic polynomial optimization problem
+given equality and inequality constraints. The level can be specified
+and it refers to the level of the localizing matrices. The words can 
+be defined commuting or non commuting.
+"""
+function npa_general( obj, level::Int64 ; 
+                    eq = 0, 
+                    ge = 0 ,
+                    show_moments=false,
+                    verbose=false)
+    ops = ops_at_level([obj, ge, eq], level)
+    pol = 1+sum(ge)+sum(eq)
+    deg = Int(ceil(degree(pol)/2))
+    ops_add = ops_at_level([ge,eq], deg)
+    ops_principal = unique([ops_add[o]*ops[p] 
+                            for o in 1:length(ops_add) for p in 1:length(ops)])
+    
+    model = Model(Mosek.Optimizer)
+
+    moments_p = npa_moments(ops_principal)
+    mons_p = keys(moments_p)
+    @variable(model, Γ[mons_p])
+    @constraint(model,
+                sum(Γ[m].*moments_p[m] for m in mons_p) >= 0,
+                PSDCone())
+    @constraint(model, Γ[Id]==1)
+
+    if eq!=0
+        moments_eq = [npa_moments(ops,eq[x]) for x in 1:length(eq)]
+        mons_eq = [keys(moments_eq[x]) for x in 1:length(eq)]
+
+        [@constraint(model,
+                sum(Γ[m].*moments_eq[x][m] for m in mons_eq[x]) >= 0,
+                PSDCone()) for x in 1:length(eq)]
+
+        [@constraint(model,
+                sum(Γ[m].*moments_eq[x][m] for m in mons_eq[x]) <= 0,
+                PSDCone()) for x in 1:length(eq)]
+    end
+    if ge!=0
+        moments_ge = [npa_moments(ops,ge[x]) for x in 1:length(ge)]
+        mons_ge = [keys(moments_ge[x]) for x in 1:length(ge)]
+    
+        [@constraint(model,
+                    sum(Γ[m].*moments_ge[x][m] for m in mons_ge[x]) >= 0,
+                    PSDCone()) for x in 1:length(ge)]
+    end
+    obj=conj_min(obj)
+    @objective(model, Min, sum(obj[m]*Γ[m] for m in monomials(obj)))
+    if !verbose
+        set_silent(model)
+    end
+    optimize!(model)
+    if show_moments==false
+        return objective_value(model)
+    else
+        if ge==0
+            return objective_value(model), sum(value(Γ[m])*moments_p[m] for m in mons_p)
+        else
+            return objective_value(model), sum(value(Γ[m])*moments_p[m] for m in mons_p), 
+                [sum(value(Γ[m])*moments_ge[x][m] for m in mons_ge[x]) for x in 1:length(ge)]
+        end
+    end
+end
