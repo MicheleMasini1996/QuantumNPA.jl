@@ -343,6 +343,7 @@ function npa_general( obj, level::Int64 ;
                     ge = 0 ,
                     show_moments=false,
                     verbose=false)
+    obj = Polynomial(obj)
     ops = ops_at_level([obj, ge, eq], level)
     pol = 1+sum(ge)+sum(eq)
     deg = Int(ceil(degree(pol)/2))
