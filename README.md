@@ -7,7 +7,7 @@ In this branch, made in collaboration with Abhishek Mishra, we extended the code
 
 Prerequisites:
 ```julia
-using Pkg; Pkg.add(["Combinatorics", "JuMP", "SCS", "BlockDiagonals"])
+using Pkg; Pkg.add(["Combinatorics", "JuMP", "SCS", "BlockDiagonals", "Mosek", "MosekTools"])
 ```
 
 First, import the functions and Mosek solver
@@ -23,7 +23,7 @@ x = [freeop(i,1) for i in 1:2]
 ```
 In the non-commutative case 
 ```julia
-x=freeop(1,1:2)
+x = freeop(1,1:2)
 ```
 
 Define the objective
