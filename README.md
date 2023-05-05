@@ -84,7 +84,7 @@ julia> fmin(S) = npa_general(obj(S), 2; eq,ge)
 fmin (generic function with 1 method)
 ```
 
-The results can be compared with the analytical solution of the previous problem for 0<S<=2.
+The results can be compared with the analytical solution of the previous problem for 1<S<=2.
 
 ```
 julia
