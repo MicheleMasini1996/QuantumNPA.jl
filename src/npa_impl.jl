@@ -338,19 +338,22 @@ given equality and inequality constraints. The level can be specified
 and it refers to the level of the localizing matrices. The words can 
 be defined commuting or non commuting.
 """
-function npa_general( obj, level::Int64 ; 
-                    eq = 0, 
-                    ge = 0 ,
+function npa_general( obj, level ; 
+                    op_eq = 0, 
+                    op_ge = 0 ,
+                    av_eq = 0,
+                    av_ge = 0,
                     show_moments=false,
                     verbose=false)
-    obj = Polynomial(obj)
-    ops = ops_at_level([obj, ge, eq], level)
-    pol = 1+sum(ge)+sum(eq)
+    obj=Polynomial(obj)
+    ops = ops_at_level([obj, av_eq, av_ge, op_ge, op_eq], level)
+    pol = 1+sum(op_ge)+sum(op_eq)
     deg = Int(ceil(degree(pol)/2))
-    ops_add = ops_at_level([ge,eq], deg)
+    ops_add = ops_at_level([op_ge,op_eq], deg)
     ops_principal = unique([ops_add[o]*ops[p] 
                             for o in 1:length(ops_add) for p in 1:length(ops)])
     
+    println(ops)
     model = Model(Mosek.Optimizer)
 
     moments_p = npa_moments(ops_principal)
@@ -361,40 +364,52 @@ function npa_general( obj, level::Int64 ;
                 PSDCone())
     @constraint(model, Γ[Id]==1)
 
-    if eq!=0
-        moments_eq = [npa_moments(ops,eq[x]) for x in 1:length(eq)]
-        mons_eq = [keys(moments_eq[x]) for x in 1:length(eq)]
+    if av_eq!=0
+        av_eq=[[conj_min(av_eq[x][1]),av_eq[x][2]] for x in 1:length(av_eq)]
+        [@constraint(model, sum(Γ[m]*av_eq[x][1][m] for m in mons_p) == av_eq[x][2]) for x in 1:length(av_eq) ]
+    end
+
+    if av_ge!=0
+        av_ge=[[conj_min(av_ge[x][1]),av_ge[x][2]] for x in 1:length(av_ge)]
+        [@constraint(model, sum(Γ[m]*av_ge[x][1][m] for m in mons_p) >= av_ge[x][2]) for x in 1:length(av_ge) ]
+    end
+
+    if op_eq!=0
+        moments_eq = [npa_moments(ops,op_eq[x]) for x in 1:length(op_eq)]
+        mons_eq = [keys(moments_eq[x]) for x in 1:length(op_eq)]
 
         [@constraint(model,
                 sum(Γ[m].*moments_eq[x][m] for m in mons_eq[x]) >= 0,
-                PSDCone()) for x in 1:length(eq)]
+                PSDCone()) for x in 1:length(op_eq)]
 
         [@constraint(model,
                 sum(Γ[m].*moments_eq[x][m] for m in mons_eq[x]) <= 0,
-                PSDCone()) for x in 1:length(eq)]
+                PSDCone()) for x in 1:length(op_eq)]
     end
-    if ge!=0
-        moments_ge = [npa_moments(ops,ge[x]) for x in 1:length(ge)]
-        mons_ge = [keys(moments_ge[x]) for x in 1:length(ge)]
+    if op_ge!=0
+        moments_ge = [npa_moments(ops,op_ge[x]) for x in 1:length(op_ge)]
+        mons_ge = [keys(moments_ge[x]) for x in 1:length(op_ge)]
     
         [@constraint(model,
                     sum(Γ[m].*moments_ge[x][m] for m in mons_ge[x]) >= 0,
-                    PSDCone()) for x in 1:length(ge)]
+                    PSDCone()) for x in 1:length(op_ge)]
     end
     obj=conj_min(obj)
     @objective(model, Min, sum(obj[m]*Γ[m] for m in monomials(obj)))
+    println(model)
     if !verbose
         set_silent(model)
     end
     optimize!(model)
+    println(termination_status(model))
     if show_moments==false
         return objective_value(model)
     else
-        if ge==0
+        if op_ge==0
             return objective_value(model), sum(value(Γ[m])*moments_p[m] for m in mons_p)
         else
             return objective_value(model), sum(value(Γ[m])*moments_p[m] for m in mons_p), 
-                [sum(value(Γ[m])*moments_ge[x][m] for m in mons_ge[x]) for x in 1:length(ge)]
+                [sum(value(Γ[m])*moments_ge[x][m] for m in mons_ge[x]) for x in 1:length(op_ge)]
         end
     end
 end
