@@ -32,31 +32,38 @@ julia
 obj = x[1] * x[2] + x[2] * x[1]
 ```
 
-Define the equality constraints. Every expression needs to be given as follows and it will be assumed equal to zero.
+Define operator equality constraints. Every expression needs to be given as follows and it will be assumed equal to zero.
 ```
 julia
-eq = [ x[1]^2 - x[1] ]
+op_eq = [ x[1]^2 - x[1] ]
 ```
 
-Finally, specify the inequality constraints. In this case, the expressions will be assumed greater or equal than zero.
+Finally, specify operator inequality constraints. In this case, the expressions will be assumed greater or equal than zero.
 ```
 julia
-ge = [ -x[2]^2 + x[2] + 0.5]
+op_ge = [ -x[2]^2 + x[2] + 0.5]
 ```
 
 To solve the minimization problem at level 2 of the hierarchy (by level 2 we mean level 2 of the localizing matrices).
 ```
 julia
-npa_general(obj, 2; eq, ge)
+npa_general(obj, 2; op_eq, op_ge)
 ```
 
 If we need to output also the solution for the moment matrices
 ```
 julia
-m,Γ,Γx = npa_general(obj, 2; eq, ge, show_moments=true)
+m,Γ,Γx = npa_general(obj, 2; op_eq, op_ge, show_moments=true)
 ```
 
 The results obtained from this example match the ones in the documentation of the Python package ncpol2sdpa.
+
+One can also force the equality of average values to be constrained. For example, we can force x[1]=1  and x[2]>=0 writing
+```
+av_eq = [ [x[1], 1] ]
+av_ge = [ [x[2], 0] ]
+npa_general = npa_general(obj, 2; op_eq, op_ge, av_eq, av_ge)
+```
 
 A further example:
 ```julia
@@ -71,16 +78,16 @@ julia> x = [ freeop(i,1) for i in 1:5 ]
 julia> obj(S) = S^2 + x[1]^2 + x[2]^2 - x[3]^2 - 2*S*(x[4]*x[1] + x[5]*x[2])
 obj (generic function with 1 method)
 
-julia> eq = [x[4]^2+x[5]^2-1]
+julia> op_eq = [x[4]^2+x[5]^2-1]
 g1-element Vector{Polynomial}:
  -Id + D1 D1 + E1 E1
 
-julia> ge = [1-x[1]^2-x[2]^2, 1-x[1]^2-x[3]^2]
+julia> op_ge = [1-x[1]^2-x[2]^2, 1-x[1]^2-x[3]^2]
 2-element Vector{Polynomial}:
  Id - A1 A1 - B1 B1
  Id - A1 A1 - C1 C1
 
-julia> fmin(S) = npa_general(obj(S), 2; eq,ge)
+julia> fmin(S) = npa_general(obj(S), 2; op_eq, op_ge)
 fmin (generic function with 1 method)
 ```
 
