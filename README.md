@@ -58,7 +58,7 @@ m,Γ,Γx = npa_general(obj, 2; op_eq, op_ge, show_moments=true)
 
 The results obtained from this example match the ones in the documentation of the Python package ncpol2sdpa.
 
-One can also force the equality of average values to be constrained. For example, we can force x[1]=1  and x[2]>=0 writing
+One can also force the values of single variables to be constrained. For example, we can force x[1]=1  and x[2]>=0 writing
 ```
 av_eq = [ [x[1], 1] ]
 av_ge = [ [x[2], 0] ]
