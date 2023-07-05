@@ -353,7 +353,6 @@ function npa_general( obj, level ;
     ops_principal = unique([ops_add[o]*ops[p] 
                             for o in 1:length(ops_add) for p in 1:length(ops)])
     
-    println(ops)
     model = Model(Mosek.Optimizer)
 
     moments_p = npa_moments(ops_principal)
@@ -396,7 +395,6 @@ function npa_general( obj, level ;
     end
     obj=conj_min(obj)
     @objective(model, Min, sum(obj[m]*Γ[m] for m in monomials(obj)))
-    println(model)
     if !verbose
         set_silent(model)
     end
