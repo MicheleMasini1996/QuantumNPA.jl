@@ -86,8 +86,9 @@ end
 
 
 
-"Return operators taken fron source at a given level of the NPA hierarchy."
+"Return operators taken from source at a given level of the NPA hierarchy."
 function ops_at_level(source, n::Integer)
+    source = source[source .!= 0]
     ops = operators(source)
     return ops_at_level(ops, n)
 end
@@ -108,6 +109,7 @@ function ops_at_level(ops::Set{Monomial}, n::Integer)
 end
 
 function ops_at_level(source, n::AbstractString)
+    source = source[source .!= 0]
     ops = operators(source, by_party=true)
     return ops_at_level(ops, n)
 end
