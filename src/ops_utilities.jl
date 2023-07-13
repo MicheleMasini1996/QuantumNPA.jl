@@ -44,7 +44,9 @@ PartyMonomials = Dict{PartyVec,Set{Monomial}}
 function add_monomials!(table::PartyMonomials,
                         itr)
     for x in itr
-        add_monomials!(table, x)
+        if !(x isa Number)
+          add_monomials!(table, x)
+        end
     end
 
     return table
