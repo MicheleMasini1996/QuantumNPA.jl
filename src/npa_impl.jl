@@ -378,11 +378,7 @@ function npa_general( obj, level ;
         mons_eq = [keys(moments_eq[x]) for x in 1:length(op_eq)]
 
         [@constraint(model,
-                sum(Γ[m].*moments_eq[x][m] for m in mons_eq[x]) >= 0,
-                PSDCone()) for x in 1:length(op_eq)]
-
-        [@constraint(model,
-                sum(Γ[m].*moments_eq[x][m] for m in mons_eq[x]) <= 0,
+                sum(Γ[m].*moments_eq[x][m] for m in mons_eq[x]) == 0,
                 PSDCone()) for x in 1:length(op_eq)]
     end
     if op_ge!=0
