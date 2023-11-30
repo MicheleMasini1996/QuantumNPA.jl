@@ -7,7 +7,7 @@ In this branch, made in collaboration with Abhishek Mishra, we extended the code
 
 Prerequisites:
 ```julia
-using Pkg; Pkg.add(["Combinatorics", "JuMP", "SCS", "BlockDiagonals", "Mosek", "MosekTools"])
+using Pkg; Pkg.add(["Combinatorics", "JuMP", "SCS", "BlockDiagonals", "Mosek", "MosekTools", "FastGaussQuadrature"])
 ```
 
 First, import the functions and Mosek solver
