@@ -340,11 +340,12 @@ be defined commuting or non commuting.
 """
 function npa_general( obj, level ; 
                     op_eq = 0, 
-                    op_ge = 0 ,
+                    op_ge = 0,
                     av_eq = 0,
                     av_ge = 0,
                     show_moments=false,
-                    verbose=false)
+                    verbose=false,
+                    normalized=true)
     obj=Polynomial(obj)
     ops = ops_at_level([obj, av_eq, av_ge, op_ge, op_eq], level)
     pol = 1+sum(op_ge)+sum(op_eq)
@@ -361,7 +362,9 @@ function npa_general( obj, level ;
     @constraint(model,
                 sum(Γ[m].*moments_p[m] for m in mons_p) >= 0,
                 PSDCone())
-    @constraint(model, Γ[Id]==1)
+    if normalized==true
+        @constraint(model, Γ[Id]==1)
+    end
 
     if av_eq!=0
         av_eq=[[conj_min(av_eq[x][1]),av_eq[x][2]] for x in 1:length(av_eq)]
